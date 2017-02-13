@@ -1,0 +1,29 @@
+Oracle:
+sqlplus spa_mcs/spa_mcs@ciads3
+
+default read committed:
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+statement-level read consistency, consistent at the *beginning* of a statement.
+https://docs.oracle.com/cd/B28359_01/server.111/b28318/consist.htm#CNCPT1315A
+Read materialized view time: statement level
+This is the default transaction isolation level. Each query executed by a transaction sees only data that was committed before the query (not the transaction) began. An Oracle Database query never reads dirty (uncommitted) data.
+
+change to:
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE; 
+reads are isolated from other commits
+Read materialized view time: transaction level
+Serializable transactions see only those changes that were committed at the time the transaction began, plus those changes made by the transaction itself through INSERT, UPDATE, and DELETE statements. Serializable transactions do not experience nonrepeatable reads or phantoms.
+
+
+change to:
+SET TRANSACTION READ ONLY;
+reads are isolated from other commits, but does not allow mutates.
+Read-only transactions see only those changes that were committed at the time the transaction began and do not allow INSERT, UPDATE, and DELETE statements.
+
+four levels of isolation (in order of strength)
+1. read uncommitted
+2. read committed
+3. repeatable read
+4. serializable
+
+Oracle provides 2 and 4. Postgresql provides 2, 3, and 4. Neo4j provides 2.
