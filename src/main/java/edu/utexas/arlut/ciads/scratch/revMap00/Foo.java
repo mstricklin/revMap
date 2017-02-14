@@ -6,6 +6,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Objects;
 import lombok.Data;
 
 @Data
@@ -13,10 +14,10 @@ public class Foo {
     final Long id;
     final String label;
     final String s1;
+    private final Map<String, Object> properties = newHashMap();
 
     public static Foo copy(final Foo f) {
-        Foo nf = new Foo(f.getId(), f.label, f.s1);
-        nf.properties = newHashMap(f.properties);
+        Foo nf = new Foo(f);
         return nf;
     }
     public static Foo make(final String a, final String b) {
@@ -28,7 +29,14 @@ public class Foo {
         label = label_;
         s1 = s1_;
     }
+    private Foo(final Foo f) {
+        id = f.id;
+        label = f.label;
+        s1 = f.s1;
+        properties.putAll(f.properties);
+    }
     // =================================
+    @SuppressWarnings("unchecked")
     public <T> T getProperty(String key) {
         return (T)properties.get(key);
     }
@@ -38,7 +46,7 @@ public class Foo {
     }
     // =================================
     public void setProperty(String key, Object value) {
-        properties.put(key,  new Property(key, value));
+        properties.put(key,  Property.make(key, value));
     }
     // =================================
     @SuppressWarnings("unchecked")
@@ -55,8 +63,15 @@ public class Foo {
         return id.intValue();
     }
     // =================================
+    @Override
+    public boolean equals(Object other) {
+        if ( this == other ) return true;
+        if ( !(other instanceof Foo) ) return false;
+        Foo f = (Foo)other;
+        return Objects.equal(id, f.id);
+    }
+    // =================================
 
 //    private Map<String, Property> properties = newHashMap();
-    private Map<String, Object> properties = newHashMap();
     private static long sID = 1;
 }

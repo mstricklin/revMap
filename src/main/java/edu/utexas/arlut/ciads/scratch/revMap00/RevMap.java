@@ -1,7 +1,6 @@
 // CLASSIFICATION NOTICE: This file is UNCLASSIFIED
 package edu.utexas.arlut.ciads.scratch.revMap00;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -9,6 +8,7 @@ import java.util.*;
 
 import com.google.common.base.Optional;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Sets;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -38,20 +38,13 @@ public class RevMap extends AbstractMap<Long, Foo> {
         removed.clear();
         modified.clear();
     }
-    // =================================
-    public Foo get(Long key) {
-        Foo f = modified.get(key);
-        if (null == f)
-            return m.get(key);
-        return f;
-    }
+
     // =================================
     @Override
     public void clear() {
-        // TODO: this in transaction space?
-        removed.clear();
+        // add everything in the map to the 'removed' collection, pending a commit
+        removed.putAll(m);
         modified.clear();
-        m.clear();
     }
     // =================================
     @Override
@@ -77,6 +70,20 @@ public class RevMap extends AbstractMap<Long, Foo> {
     }
     // =================================
     @Override
+    public Foo get(Object key) {
+        Foo f = modified.get(key);
+        if (null == f)
+            return m.get(key);
+        return f;
+    }
+    // =================================
+    @Override
+    public boolean isEmpty() {
+        // TODO: check m.isEmpty, and modified.isEmpty, after subtracting removed elemenets
+        return m.isEmpty();
+    }
+    // =================================
+    @Override
     public Set<Long> keySet() {
         Set<Long> keys = newHashSet( modified.keySet() );
         keys.addAll( m.keySet() );
@@ -84,16 +91,13 @@ public class RevMap extends AbstractMap<Long, Foo> {
     }
     // =================================
     @Override
-    public Collection<Foo> values() {
-        Set<Foo> values = newHashSet( modified.values() );
-        values.addAll( m.values() );
-        values.removeAll(removed.values());
-        return values;
+    public Foo put(@NonNull Long key, @NonNull Foo value) {
+        return modified.put(key, value);
     }
     // =================================
     @Override
-    public Foo put(@NonNull Long key, @NonNull Foo value) {
-        return modified.put(key, value);
+    public void putAll(Map<? extends Long, ? extends Foo> m) {
+        modified.putAll(m);
     }
     // =================================
     public Foo remove(Long k) {
@@ -105,6 +109,20 @@ public class RevMap extends AbstractMap<Long, Foo> {
         if (null != v)
             removed.put(k, v);
         return v;
+    }
+    // =================================
+    @Override
+    public int size() {
+        // TODO: (m.size U modified.size) - removed.size
+        return m.size();
+    }
+    // =================================
+    @Override
+    public Collection<Foo> values() {
+        Set<Foo> values = newHashSet( modified.values() );
+        values.addAll( m.values() );
+        values.removeAll(removed.values());
+        return values;
     }
     // =================================
     public void touch(Long key) {
@@ -134,8 +152,23 @@ public class RevMap extends AbstractMap<Long, Foo> {
             log.info("{} => {}", e.getKey(), e.getValue());
     }
     // =================================
+    @Override
+    public boolean equals(Object other) {
+        if ( this == other ) return true;
+        if ( !(other instanceof Foo) ) return false;
+        RevMap rm = (RevMap)other;
+        // TODO: ignore revision context?
+        return Objects.equal(m, rm.m);
+    }
+    // =================================
+    @Override
+    public int hashCode() {
+        return m.hashCode();
+    }
+    // =================================
     private Map<Long, Foo> m        = newHashMap();
     private Map<Long, Foo> modified = newHashMap();
+    private Map<Long, Foo> added    = newHashMap();
     private Map<Long, Foo> removed  = newHashMap();
 
     private ThreadLocal<Map<Long, Optional<Foo>>> branchMap = new ThreadLocal<Map<Long, Optional<Foo>>>() {
